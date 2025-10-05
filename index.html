@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Appels & Accompagnements</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+body{font-family:'Segoe UI',sans-serif;background:#F3F4F6;margin:0;padding:20px;}
+.container{max-width:1200px;margin:20px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 8px 25px rgba(0,0,0,0.08);}
+header{display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:20px;}
+header img{max-height:60px;}
+header h1{color:#1E3A8A;margin:0;font-size:1.6rem;font-weight:700;}
+label{display:block;margin-top:12px;font-weight:600;color:#0f1724;}
+input,select,textarea{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid #E2E8F0;font-size:0.95rem;}
+textarea{min-height:90px;resize:vertical;}
+.controls{margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;}
+button{padding:8px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;transition:0.2s;}
+button:hover{opacity:0.85;}
+.next{background:#3B82F6;color:#fff;}
+.prev{background:#64748B;color:#fff;}
+.finish{background:#0EA5A3;color:#fff;}
+.newEntry{background:#22C55E;color:#fff;margin-top:12px;}
+.importExcel{background:#F59E0B;color:#fff;margin-top:12px;}
+.exportExcel{background:#10B981;color:#fff;margin-top:12px;}
+table{width:100%;border-collapse:collapse;margin-top:18px;font-size:0.95rem;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,0.08);}
+thead th{background:#1E3A8A;color:#fff;padding:12px;text-align:center;position:sticky;top:0;z-index:1;}
+th,td{border:1px solid #E6EEF8;padding:10px;text-align:center;}
+tbody tr:nth-child(even){background:#F9FAFB;}
+tbody tr:hover{background:#E6F6FF;}
+.actions button{margin:2px;padding:6px 8px;border-radius:8px;font-weight:700;font-size:0.85rem;}
+.mail{background:#3B82F6;color:#fff;}
+.del{background:#EF4444;color:#fff;}
+.modify{background:#10B981;color:#fff;}
+.dossierClos{background:#F59E0B;color:#111;}
+.dossier-clos td{background:#FEF2E2!important;color:#9A1F1F;}
+.step{display:none;}
+.step.active{display:block;}
+#formContainer{display:none;}
+.search-bar{display:flex;align-items:center;gap:8px;margin:12px 0;}
+.search-bar input{flex:1;padding:10px;border-radius:10px;border:1px solid #CBD5E1;font-size:1rem;transition:0.2s;}
+.search-bar input:focus{border-color:#3B82F6;outline:none;box-shadow:0 0 6px rgba(59,130,246,0.4);}
+#actionButtons{display:flex;gap:10px;margin-top:15px;}
+@media(max-width:1024px){table,thead,tbody,th,td,tr{display:block;}
+  thead tr{display:none;}
+  tbody td{display:flex;justify-content:space-between;padding:8px;}
+  tbody td:before{content:attr(data-label);font-weight:600;}
+  .actions button{margin:2px 2px 2px 0;}
+}
+</style>
+</head>
+<body>
+
+<header class="container">
+  <img src="https://www.espoir-aines.fr/wp-content/uploads/2023/03/logo_espoir.png" alt="Logo">
+  <h1>Dashboard Appels & Accompagnements</h1>
+</header>
+
+<div class="container" id="tableContainer">
+  <h2>Tableau récapitulatif</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>📩</th><th>#</th><th>Date</th><th>Personne</th><th>Bénévole</th><th>Accompagnement</th><th>Aidant</th><th>Nom aidé</th><th>Nom jeune fille</th><th>Prénom</th><th>Âge</th><th>Naissance</th><th>Téléphone</th><th>Adresse</th><th>Commune</th><th>Département</th><th>Mail</th><th>Source</th><th>n° SS</th><th>Nb accompagnement</th><th>Raison</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="finalTable"></tbody>
+  </table>
+
+  <div id="actionButtons">
+    <button class="newEntry" id="newFormBtnBottom"><i class="fa-solid fa-plus"></i> Créer un formulaire</button>
+    <button class="importExcel" id="importExcelBtn"><i class="fa-solid fa-file-import"></i> Importer Excel</button>
+    <button class="exportExcel" id="exportExcelBtn"><i class="fa-solid fa-file-export"></i> Exporter Excel</button>
+  </div>
+
+  <div class="search-bar">
+    <span>🔍 Rechercher :</span>
+    <input type="text" id="searchInput" placeholder="Nom, prénom, date, bénévole...">
+  </div>
+</div>
+
+<div class="container" id="formContainer">
+  <!-- FORMULAIRE MULTI-STEP -->
+  <div class="step active" data-step="0">
+    <label>Date de l'appel</label><input type="date" id="dateAppel">
+    <label>Personne qui reçoit l'appel</label>
+    <select id="appel"><option value="">-- Sélectionner --</option><option>Coraline</option><option>Olivier</option></select>
+    <div class="controls"><button class="next">➡️ Suivant</button></div>
+  </div>
+  <div class="step" data-step="1">
+    <label>Bénévole</label>
+    <select id="benevole"><option value="">-- Sélectionner --</option><option>Olivier</option><option>Truc</option><option>Chouette</option><option>Plus</option></select>
+    <label>Type d'accompagnement</label>
+    <select id="accompagnement"><option value="">-- Sélectionner --</option><option>Domicile</option><option>Téléphone</option></select>
+    <div class="controls"><button class="prev">⬅️ Précédent</button><button class="next">➡️ Suivant</button></div>
+  </div>
+  <div class="step" data-step="2">
+    <label>Aidant(e)</label><input id="aidant" type="text">
+    <label>Nom de l'aidé(e)</label><input id="nomAide" type="text">
+    <label>Nom de jeune fille</label><input id="nomJeuneFille" type="text">
+    <label>Prénom de l'aidé(e)</label><input id="prenomAide" type="text">
+    <div class="controls"><button class="prev">⬅️ Précédent</button><button class="next">➡️ Suivant</button></div>
+  </div>
+  <div class="step" data-step="3">
+    <label>Âge</label><input id="ageAide" type="number" min="0">
+    <label>Date de naissance</label><input id="dobAide" type="date">
+    <label>Téléphone</label><input id="telAide" type="tel">
+    <label>Adresse</label><input id="adresseAide" type="text">
+    <div class="controls"><button class="prev">⬅️ Précédent</button><button class="next">➡️ Suivant</button></div>
+  </div>
+  <div class="step" data-step="4">
+    <label>Commune</label><input id="communeAide" type="text">
+    <label>Département</label><input id="departementAide" type="text">
+    <label>Mail</label><input id="mailAide" type="email">
+    <label>Source</label><select id="source"><option value="">-- Sélectionner --</option><option>Partenaire</option><option>Particulier</option></select>
+    <div class="controls"><button class="prev">⬅️ Précédent</button><button class="next">➡️ Suivant</button></div>
+  </div>
+  <div class="step" data-step="5">
+    <label>Numéro sécurité sociale</label><input id="numSS" type="text">
+    <label>Nombre d'accompagnements</label><select id="nbAccompagnement"><option value="">-- Sélectionner --</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+    <label>Raison de l'appel / demande</label><textarea id="raisonAppel"></textarea>
+    <div class="controls"><button class="prev">⬅️ Précédent</button><button class="finish">✅ Terminer</button></div>
+  </div>
+</div>
+
+<script>
+const steps=document.querySelectorAll(".step");
+let currentStep=0;
+function showStep(n){steps.forEach((s,i)=>s.classList.toggle("active",i===n));}
+document.querySelectorAll(".next").forEach(b=>b.addEventListener("click",()=>{if(currentStep<steps.length-1){currentStep++;showStep(currentStep);}}));
+document.querySelectorAll(".prev").forEach(b=>b.addEventListener("click",()=>{if(currentStep>0){currentStep--;showStep(currentStep);}}));
+
+const formContainer=document.getElementById("formContainer");
+const tableContainer=document.getElementById("tableContainer");
+const newFormBtn=document.getElementById("newFormBtnBottom");
+const finalTable=document.getElementById("finalTable");
+
+let data=JSON.parse(localStorage.getItem("dashboardData")||"[]");
+
+function saveData(){localStorage.setItem("dashboardData",JSON.stringify(data));}
+
+// --- RENDER TABLE ---
+function renderTable(){
+ finalTable.innerHTML="";
+ data.forEach((r,i)=>{
+  const row=document.createElement("tr");
+  row.innerHTML=`<td><input type="checkbox" class="selectMail"></td><td>${i+1}</td>`+r.map(c=>`<td>${c||""}</td>`).join("")+
+    `<td class="actions">
+       <button class='modify'>Modifier</button>
+       <button class='dossierClos'>Dossier Clos</button>
+       <button class='del'>Supprimer</button>
+     </td>`;
+  finalTable.appendChild(row);
+
+  row.querySelector(".del").addEventListener("click",()=>{data.splice(i,1);saveData();renderTable();});
+  row.querySelector(".modify").addEventListener("click",()=>{
+    formContainer.style.display="block"; tableContainer.style.display="none"; currentStep=0; showStep(currentStep);
+    [dateAppel.value,appel.value,benevole.value,accompagnement.value,aidant.value,nomAide.value,
+     nomJeuneFille.value,prenomAide.value,ageAide.value,dobAide.value,telAide.value,adresseAide.value,
+     communeAide.value,departementAide.value,mailAide.value,source.value,numSS.value,nbAccompagnement.value,raisonAppel.value]=r;
+    data.splice(i,1);
+  });
+  row.querySelector(".dossierClos").addEventListener("click",()=>{row.classList.add("dossier-clos");});
+ });
+
+ if(finalTable.lastElementChild){
+   finalTable.lastElementChild.scrollIntoView({behavior:"smooth",block:"center"});
+   finalTable.lastElementChild.style.backgroundColor="#DCFCE7";
+   setTimeout(()=>finalTable.lastElementChild.style.backgroundColor="",1500);
+ }
+}
+renderTable();
+
+// --- RESET FORM ---
+function resetForm(){
+ document.querySelectorAll("#formContainer input, #formContainer select, #formContainer textarea").forEach(el=>el.value="");
+ currentStep=0;showStep(currentStep);
+}
+
+newFormBtn.addEventListener("click",()=>{ resetForm(); formContainer.style.display="block"; tableContainer.style.display="none"; window.scrollTo({top:0,behavior:"smooth"}); });
+
+// --- FINISH FORM ---
+document.querySelector(".finish").addEventListener("click",()=>{
+ const entry=[dateAppel.value,appel.value,benevole.value,accompagnement.value,aidant.value,nomAide.value,
+  nomJeuneFille.value,prenomAide.value,ageAide.value,dobAide.value,telAide.value,adresseAide.value,
+  communeAide.value,departementAide.value,mailAide.value,source.value,numSS.value,nbAccompagnement.value,raisonAppel.value];
+ data.push(entry); saveData(); renderTable();
+ formContainer.style.display="none"; tableContainer.style.display="block";
+ // SCROLL sur la dernière ligne
+ if(finalTable.lastElementChild){ finalTable.lastElementChild.scrollIntoView({behavior:"smooth",block:"center"}); finalTable.lastElementChild.style.backgroundColor="#DCFCE7"; setTimeout(()=>finalTable.lastElementChild.style.backgroundColor="",1500);}
+});
+
+// --- IMPORT EXCEL ---
+document.getElementById("importExcelBtn").addEventListener("click",()=>{
+ const input=document.createElement("input"); input.type="file"; input.accept=".xlsx,.xls";
+ input.onchange=e=>{
+  const file=e.target.files[0]; const reader=new FileReader();
+  reader.onload=event=>{
+   const dataArray=new Uint8Array(event.target.result);
+   const workbook=XLSX.read(dataArray,{type:"array"});
+   const sheet=workbook.Sheets[workbook.SheetNames[0]];
+   const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+   rows.slice(1).forEach(r=>{if(r.length>0)data.push(r);});
+   saveData(); renderTable();
+   if(finalTable.lastElementChild){ finalTable.lastElementChild.scrollIntoView({behavior:"smooth",block:"center"}); finalTable.lastElementChild.style.backgroundColor="#DCFCE7"; setTimeout(()=>finalTable.lastElementChild.style.backgroundColor="",1500);}
+   alert(`📂 ${rows.length-1} lignes importées !`);
+  }; reader.readAsArrayBuffer(file);
+ };
+ input.click();
+});
+
+// --- EXPORT EXCEL ---
+document.getElementById("exportExcelBtn").addEventListener("click",()=>{
+ if(data.length===0)return alert("Aucune donnée à exporter !");
+ const headers=["Date","Personne","Bénévole","Accompagnement","Aidant","Nom aidé","Nom jeune fille","Prénom","Âge","Naissance","Téléphone","Adresse","Commune","Département","Mail","Source","n° SS","Nb accompagnement","Raison"];
+ const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,"Appels");
+ XLSX.writeFile(wb,"Dashboard_Appels.xlsx");
+ alert("✅ Fichier Excel exporté !");
+});
+
+// --- ENVOI MAIL (simple checkbox pour sélection) ---
+document.addEventListener("keydown",e=>{
+ if(e.ctrlKey && e.key==="m"){ // Ctrl+M = exemple d'envoi
+   const selected=[];
+   document.querySelectorAll(".selectMail:checked").forEach(cb=>{
+     const idx=[...finalTable.querySelectorAll("tr")].indexOf(cb.closest("tr"));
+     selected.push(data[idx]);
+   });
+   if(selected.length>0)alert(`📧 Préparer mail pour ${selected.length} ligne(s)`);
+   else alert("⚠️ Sélectionnez au moins une ligne !");
+ }
+});
+
+// --- RECHERCHE ---
+document.getElementById("searchInput").addEventListener("input",function(){
+ const val=this.value.toLowerCase();
+ document.querySelectorAll("#finalTable tr").forEach(tr=>{
+   tr.style.display=[...tr.querySelectorAll("td")].some(td=>td.textContent.toLowerCase().includes(val))?"":"none";
+ });
+});
+</script>
+
+</body>
+</html>
